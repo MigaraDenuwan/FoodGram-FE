@@ -12,7 +12,6 @@ import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 const profileSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
   bio: z.string().max(160, 'Bio must be at most 160 characters').optional(),
   email: z.string().email('Invalid email address'),
@@ -20,8 +19,15 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  token: string;
+}
+
 const EditProfile: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: User | null };
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -41,46 +47,41 @@ const EditProfile: React.FC = () => {
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: '',
       name: '',
       bio: '',
-      email: '',
+      email: user?.email || '',
     },
   });
 
   useEffect(() => {
-    if (!user) {
+    console.log('EditProfile: user=', user);
+    if (!user || !user.id || !user.token) {
+      setErrorMessage('User not authenticated');
       navigate('/login');
       return;
     }
 
     async function fetchProfile() {
       try {
-        if (!user) {
-          throw new Error('User is not authenticated');
+        if (!user || typeof user.token !== 'string') {
+          throw new Error('Invalid token: token must be a string');
         }
-        const profileData = await getProfile(user.id);
+        console.log('EditProfile: Using token=', user.token);
+        const profileData = await getProfile(user.id, user.token);
         setProfile(profileData);
         if (profileData) {
-          setValue('username', profileData.userId);
-        }
-        if (profileData) {
           setValue('name', profileData.name);
-        }
-        setValue('bio', profileData?.bio || '');
-        if (profileData) {
+          setValue('bio', profileData.bio || '');
           setValue('email', profileData.email);
+          if (profileData.avatarUrl) {
+            setAvatarPreview(profileData.avatarUrl);
+          }
+        } else {
+          setValue('email', user.email);
         }
-        if (profileData?.avatarUrl) {
-          setAvatarPreview(profileData.avatarUrl);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        setProfile(null);
-        if (user) {
-          setValue('username', user.id);
-        }
-        setValue('email', user?.email || '');
+      } catch (error: any) {
+        console.error('Error fetching profile:', error.message);
+        setErrorMessage('Failed to load profile: ' + error.message);
       } finally {
         setLoading(false);
       }
@@ -109,7 +110,15 @@ const EditProfile: React.FC = () => {
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
-    if (!user) return;
+    if (!user || !user.id || !user.token) {
+      setErrorMessage('User not authenticated');
+      return;
+    }
+
+    if (typeof user.token !== 'string') {
+      setErrorMessage('Invalid token: token must be a string');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -117,14 +126,8 @@ const EditProfile: React.FC = () => {
     try {
       let avatarUrl = profile?.avatarUrl || '';
       if (avatarFile) {
-        try {
-          const uploadResult = await uploadImage(avatarFile);
-          avatarUrl = uploadResult.url;
-        } catch (error) {
-          console.error('Error uploading avatar:', error);
-          setErrorMessage('Failed to upload avatar. Please try again.');
-          return;
-        }
+        const uploadResult = await uploadImage(avatarFile);
+        avatarUrl = uploadResult.url;
       }
 
       const profileData = {
@@ -132,35 +135,48 @@ const EditProfile: React.FC = () => {
         bio: data.bio || '',
         avatarUrl,
         email: data.email,
+        followers: profile?.followers || 0,
+        following: profile?.following || 0,
+        recipeCount: profile?.recipeCount || 0,
       };
 
+      console.log('onSubmit: Sending profileData=', profileData, 'token=', user.token);
+
       if (profile) {
-        await updateProfile(user.id, profileData);
+        await updateProfile(user.id, profileData, user.token);
       } else {
-        await createProfile(user.id, profileData);
+        await createProfile(user.id, profileData, user.token);
       }
 
       navigate(`/profile/${user.id}`);
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      setErrorMessage('Failed to save profile. Please try again.');
+    } catch (error: any) {
+      console.error('Error saving profile:', error.message);
+      setErrorMessage(`Failed to ${profile ? 'update' : 'create'} profile: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteProfile = async () => {
-    if (!user) return;
+    if (!user || !user.id || !user.token) {
+      setErrorMessage('User not authenticated');
+      return;
+    }
+
+    if (typeof user.token !== 'string') {
+      setErrorMessage('Invalid token: token must be a string');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      await deleteProfile(user.id);
+      await deleteProfile(user.id, user.token);
       navigate('/login');
-    } catch (error) {
-      console.error('Error deleting profile:', error);
-      setErrorMessage('Failed to delete profile. Please try again.');
+    } catch (error: any) {
+      console.error('Error deleting profile:', error.message);
+      setErrorMessage(`Failed to delete profile: ${error.message}`);
     } finally {
       setIsSubmitting(false);
       setShowDeleteConfirm(false);
@@ -178,7 +194,7 @@ const EditProfile: React.FC = () => {
   return (
     <div className="pt-4 pb-20 md:pb-8">
       <div className="flex items-center mb-6">
-        <Link to={`/profile/${user?.id}`} className="flex items-center text-gray-700">
+        <Link to={`/profile/${user?.id ?? ''}`} className="flex items-center text-gray-700">
           <ArrowLeft className="h-5 w-5 mr-2" />
           <span>Back</span>
         </Link>
@@ -196,7 +212,7 @@ const EditProfile: React.FC = () => {
           <label className="block text-sm font-medium text-gray-700 mb-4 text-center">
             Profile Picture
           </label>
-          <div className="relative mb-4">
+          <div className={`relative mb-4`}>
             <div
               className={`w-32 h-32 rounded-full overflow-hidden ${
                 !avatarPreview ? 'bg-gray-200' : ''
@@ -229,13 +245,6 @@ const EditProfile: React.FC = () => {
         </div>
 
         <div className="space-y-4 mb-6">
-          <Input
-            label="Username"
-            placeholder="Your username"
-            error={errors.username?.message}
-            {...register('username')}
-            disabled
-          />
           <Input
             label="Name"
             placeholder="Your name"
@@ -292,7 +301,11 @@ const EditProfile: React.FC = () => {
               Are you sure you want to delete your profile? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-4">
-              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
               <Button variant="danger" onClick={handleDeleteProfile} isLoading={isSubmitting}>

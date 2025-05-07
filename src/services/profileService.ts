@@ -26,6 +26,10 @@ export interface UpdateProfileRequest {
 
 export async function getProfile(userId: string, token?: string): Promise<Profile | null> {
   try {
+    if (token && typeof token !== 'string') {
+      throw new Error('Invalid token: token must be a string');
+    }
+    console.log('getProfile: Using token=', token);
     const response = await axios.get(`${API_URL}/by-userid/${userId}`, {
       headers: {
         Authorization: token ? `Bearer ${token}` : undefined,
@@ -35,93 +39,125 @@ export async function getProfile(userId: string, token?: string): Promise<Profil
     const data = response.data;
     return {
       id: data.id,
-      userId: data.username,
-      name: data.fullName,
+      userId: data.userId || userId,
+      name: data.name || 'Unknown User',
       bio: data.bio || '',
-      avatarUrl: data.profilePictureUrl || '',
+      avatarUrl: data.avatarUrl || '',
       email: data.email || '',
       followers: data.followers || 0,
       following: data.following || 0,
       recipeCount: data.recipeCount || 0,
     };
   } catch (error: any) {
-    console.error('Error fetching profile:', error.response?.status, error.response?.data);
+    console.error('Error fetching profile:', error.message);
     return null;
   }
 }
 
 export async function createProfile(userId: string, data: UpdateProfileRequest, token?: string): Promise<Profile> {
-  const response = await axios.post(
-    API_URL,
-    {
-      username: userId,
-      fullName: data.name,
-      bio: data.bio,
-      profilePictureUrl: data.avatarUrl,
-      email: data.email,
-      followers: data.followers || 0,
-      following: data.following || 0,
-      recipeCount: data.recipeCount || 0,
-    },
-    {
+  if (!userId) {
+    throw new Error('userId is required');
+  }
+  if (!data.name || !data.email) {
+    throw new Error('Name and email are required');
+  }
+  if (token && typeof token !== 'string') {
+    throw new Error('Invalid token: token must be a string');
+  }
+
+  const payload = {
+    userId,
+    name: data.name || 'New User',
+    bio: data.bio || '',
+    avatarUrl: data.avatarUrl || '',
+    email: data.email || '',
+    followers: data.followers || 0,
+    following: data.following || 0,
+    recipeCount: data.recipeCount || 0,
+  };
+
+  console.log('createProfile: Sending request with payload=', payload, 'token=', token);
+
+  try {
+    const response = await axios.post(API_URL, payload, {
       headers: {
         Authorization: token ? `Bearer ${token}` : undefined,
       },
       withCredentials: true,
-    }
-  );
-  const dataResponse = response.data;
-  return {
-    id: dataResponse.id,
-    userId: dataResponse.username,
-    name: dataResponse.fullName,
-    bio: dataResponse.bio || '',
-    avatarUrl: dataResponse.profilePictureUrl || '',
-    email: dataResponse.email || '',
-    followers: dataResponse.followers || 0,
-    following: dataResponse.following || 0,
-    recipeCount: dataResponse.recipeCount || 0,
-  };
+    });
+    const dataResponse = response.data;
+    return {
+      id: dataResponse.id,
+      userId: dataResponse.userId,
+      name: dataResponse.name || 'New User',
+      bio: dataResponse.bio || '',
+      avatarUrl: dataResponse.avatarUrl || '',
+      email: dataResponse.email || '',
+      followers: dataResponse.followers || 0,
+      following: dataResponse.following || 0,
+      recipeCount: dataResponse.recipeCount || 0,
+    };
+  } catch (error: any) {
+    console.error('Error creating profile:', error.message);
+    throw new Error(error.response?.data?.message || error.message || 'Failed to create profile');
+  }
 }
 
 export async function updateProfile(userId: string, data: UpdateProfileRequest, token?: string): Promise<Profile> {
-  const response = await axios.put(
-    `${API_URL}/${userId}`,
-    {
-      fullName: data.name,
-      bio: data.bio,
-      profilePictureUrl: data.avatarUrl,
-      email: data.email,
-      followers: data.followers || 0,
-      following: data.following || 0,
-      recipeCount: data.recipeCount || 0,
-    },
-    {
+  if (token && typeof token !== 'string') {
+    throw new Error('Invalid token: token must be a string');
+  }
+  try {
+    const response = await axios.put(
+      `${API_URL}/by-userid/${userId}`,
+      {
+        userId,
+        name: data.name,
+        bio: data.bio || '',
+        avatarUrl: data.avatarUrl || '',
+        email: data.email,
+        followers: data.followers || 0,
+        following: data.following || 0,
+        recipeCount: data.recipeCount || 0,
+      },
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+        withCredentials: true,
+      }
+    );
+    const dataResponse = response.data;
+    return {
+      id: dataResponse.id,
+      userId: dataResponse.userId,
+      name: dataResponse.name || 'Unknown User',
+      bio: dataResponse.bio || '',
+      avatarUrl: dataResponse.avatarUrl || '',
+      email: dataResponse.email || '',
+      followers: dataResponse.followers || 0,
+      following: dataResponse.following || 0,
+      recipeCount: dataResponse.recipeCount || 0,
+    };
+  } catch (error: any) {
+    console.error('Error updating profile:', error.message);
+    throw new Error(error.response?.data?.message || 'Failed to update profile');
+  }
+}
+
+export async function deleteProfile(userId: string, token?: string): Promise<void> {
+  if (token && typeof token !== 'string') {
+    throw new Error('Invalid token: token must be a string');
+  }
+  try {
+    await axios.delete(`${API_URL}/by-userid/${userId}`, {
       headers: {
         Authorization: token ? `Bearer ${token}` : undefined,
       },
       withCredentials: true,
-    }
-  );
-  const dataResponse = response.data;
-  return {
-    id: dataResponse.id,
-    userId: dataResponse.username,
-    name: dataResponse.fullName,
-    bio: dataResponse.bio || '',
-    avatarUrl: dataResponse.profilePictureUrl || '',
-    email: dataResponse.email || '',
-    followers: dataResponse.followers || 0,
-    following: dataResponse.following || 0,
-    recipeCount: dataResponse.recipeCount || 0,
-  };
-}
-
-export async function deleteProfile(userId: string, token?: string): Promise<void> {
-  await axios.delete(`${API_URL}/${userId}`, {
-    headers: {
-      Authorization: token ? `Bearer ${token}` : undefined,
-    },    
-    withCredentials: true,
-  });
+    });
+  } catch (error: any) {
+    console.error('Error deleting profile:', error.message);
+    throw new Error(error.response?.data?.message || 'Failed to delete profile');
+  }
 }
