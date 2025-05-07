@@ -169,5 +169,3 @@ const StoryCreate: React.FC = () => {
 };
 
 export default StoryCreate;
-
-

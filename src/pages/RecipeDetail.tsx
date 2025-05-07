@@ -122,7 +122,7 @@ const RecipeDetail: React.FC = () => {
         
         {isOwner && (
           <div className="ml-auto flex space-x-2">
-            <Link to={`/recipe/edit/${recipe.id}`}>
+            <Link to={`/recipe/edit/${recipe.id}`}> {/* Fixed route */}
               <Button size="sm" variant="outline" icon={<Edit className="h-4 w-4" />}>
                 Edit
               </Button>

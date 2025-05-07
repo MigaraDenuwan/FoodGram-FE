@@ -30,7 +30,7 @@ export interface CreatePostRequest {
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
-export async function getPosts(token: any): Promise<Post[]> {
+export async function getPosts(_token: any): Promise<Post[]> {
   const response = await axios.get(API_URL, {
     withCredentials: true,
   });
