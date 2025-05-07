@@ -10,7 +10,7 @@ interface StoryCircleProps {
 
 const StoryCircle: React.FC<StoryCircleProps> = ({ story, isFirst = false }) => {
   const { user } = useAuth();
-  const hasViewed = user && story.viewedBy.includes(user.id);
+  const hasViewed = user && Array.isArray(story.viewedBy) && story.viewedBy.includes(user.id);
 
   return (
     <Link
@@ -29,9 +29,7 @@ const StoryCircle: React.FC<StoryCircleProps> = ({ story, isFirst = false }) => 
           />
         </div>
       </div>
-      <span className="text-xs mt-1 truncate w-16 text-center">
-        {story.username}
-      </span>
+      <span className="text-xs mt-1 truncate w-16 text-center">{story.username}</span>
     </Link>
   );
 };

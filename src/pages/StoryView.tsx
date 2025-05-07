@@ -1,80 +1,82 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getStories, viewStory } from '../services/storyService';
+import { X, ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react';
+import { getStories, viewStory, deleteStory, Story } from '../services/storyService';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import { mockStories } from '../utils/mockData';
+import { Link } from 'react-router-dom';
 
 const StoryView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
-  const [stories, setStories] = useState(mockStories);
+  const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  
+
   useEffect(() => {
     async function fetchData() {
       try {
         const storiesData = await getStories();
-        setStories(storiesData); // <- remove fallback to mockStories
+        if (storiesData.length === 0) {
+          setError('No stories available');
+          navigate('/');
+        } else {
+          setStories(storiesData);
+        }
       } catch (error) {
+        setError('Error fetching stories');
         console.error('Error fetching stories:', error);
       } finally {
         setLoading(false);
       }
     }
-  
     fetchData();
-  }, []);
-  
-  
-  // Find current story index from the id
+  }, [navigate]);
+
   useEffect(() => {
     if (stories.length > 0 && id) {
       const index = stories.findIndex(story => story.id === id);
       if (index !== -1) {
         setCurrentIndex(index);
+      } else {
+        setError('Story not found');
+        navigate('/');
       }
     }
-  }, [id, stories]);
-  
-  // Mark story as viewed and progress bar
+  }, [id, stories, navigate]);
+
   useEffect(() => {
     if (loading || !user || !stories.length) return;
-    
+
     const currentStory = stories[currentIndex];
     if (!currentStory) return;
-    
-    // Mark as viewed
+
     if (!currentStory.viewedBy.includes(user.id)) {
-      try {
-        viewStory(currentStory.id, user.id);
-        
-        // Update local state
-        setStories(prev => 
-          prev.map(s => 
-            s.id === currentStory.id 
-              ? { ...s, viewedBy: [...s.viewedBy, user.id] } 
-              : s
-          )
-        );
-      } catch (error) {
-        console.error('Error marking story as viewed:', error);
-      }
+      viewStory(currentStory.id, user.id)
+        .then(() => {
+          setStories(prev =>
+            prev.map(s =>
+              s.id === currentStory.id
+                ? { ...s, viewedBy: [...s.viewedBy, user.id] }
+                : s
+            )
+          );
+        })
+        .catch(error => {
+          console.error('Error marking story as viewed:', error);
+          setError('Failed to mark story as viewed');
+        });
     }
-    
-    // Progress bar
+
     setProgress(0);
     const timer = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(timer);
-          // Go to next story
           if (currentIndex < stories.length - 1) {
             navigate(`/story/${stories[currentIndex + 1].id}`);
           } else {
@@ -84,15 +86,12 @@ const StoryView: React.FC = () => {
         }
         return prev + 1;
       });
-    }, 50); // 5 seconds total (50ms * 100)
-    
+    }, 50);
+
     return () => clearInterval(timer);
   }, [currentIndex, loading, navigate, stories, user]);
-  
-  const handleClose = () => {
-    navigate('/');
-  };
-  
+
+  const handleClose = () => navigate('/');
   const handleNext = () => {
     if (currentIndex < stories.length - 1) {
       navigate(`/story/${stories[currentIndex + 1].id}`);
@@ -100,38 +99,52 @@ const StoryView: React.FC = () => {
       navigate('/');
     }
   };
-  
   const handlePrevious = () => {
     if (currentIndex > 0) {
       navigate(`/story/${stories[currentIndex - 1].id}`);
     }
   };
-  
-  if (loading || !stories.length) {
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this story?')) return;
+
+    try {
+      await deleteStory(stories[currentIndex].id);
+      navigate('/');
+    } catch (err) {
+      console.error('Error deleting story:', err);
+      setError('Failed to delete story. Please try again.');
+    }
+  };
+
+  if (loading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
         <LoadingSpinner color="text-white" size="large" />
       </div>
     );
   }
-  
+
+  if (error || !stories.length) {
+    return <div className="text-red-500 p-4">{error || 'No stories available'}</div>;
+  }
+
   const currentStory = stories[currentIndex];
   if (!currentStory) {
     navigate('/');
     return null;
   }
-  
+
+  const isOwnStory = user && currentStory.userId === user.id;
+
   return (
     <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-      {/* Close button */}
       <button
         onClick={handleClose}
         className="absolute top-4 right-4 text-white z-10"
       >
         <X className="h-8 w-8" />
       </button>
-      
-      {/* Navigation buttons */}
       {currentIndex > 0 && (
         <button
           onClick={handlePrevious}
@@ -140,7 +153,6 @@ const StoryView: React.FC = () => {
           <ChevronLeft className="h-8 w-8" />
         </button>
       )}
-      
       {currentIndex < stories.length - 1 && (
         <button
           onClick={handleNext}
@@ -149,10 +161,26 @@ const StoryView: React.FC = () => {
           <ChevronRight className="h-8 w-8" />
         </button>
       )}
-      
-      {/* Content */}
+      {isOwnStory && (
+        <div className="absolute bottom-4 right-4 flex space-x-2 z-10">
+          <Link
+            to={`/story/${currentStory.id}/edit`}
+            className="bg-blue-500 text-white rounded-full p-2 hover:bg-blue-600"
+            title="Edit Story"
+          >
+            <Edit2 className="h-5 w-5" />
+          </Link>
+
+          <button
+            onClick={handleDelete}
+            className="bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+            title="Delete Story"
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+        </div>
+      )}
       <div className="w-full max-w-md mx-auto h-full max-h-screen">
-        {/* Progress bars */}
         <div className="absolute top-4 left-4 right-4 flex space-x-1">
           {stories.map((story, i) => (
             <div
@@ -165,14 +193,12 @@ const StoryView: React.FC = () => {
                 }`}
                 style={{
                   width: i === currentIndex ? `${progress}%` : i < currentIndex ? '100%' : '0%',
-                  transition: i === currentIndex ? 'width linear 50ms' : 'none'
+                  transition: i === currentIndex ? 'width linear 50ms' : 'none',
                 }}
               />
             </div>
           ))}
         </div>
-        
-        {/* User info */}
         <div className="absolute top-8 left-4 right-4 flex items-center">
           <div className="w-8 h-8 rounded-full bg-gray-800 overflow-hidden">
             <img
@@ -188,8 +214,6 @@ const StoryView: React.FC = () => {
             </p>
           </div>
         </div>
-        
-        {/* Story image */}
         <div className="h-full flex items-center justify-center">
           <img
             src={currentStory.imageUrl}
@@ -197,9 +221,7 @@ const StoryView: React.FC = () => {
             className="max-h-full max-w-full object-contain"
           />
         </div>
-        
-        {/* Story content */}
-        <div className="absolute bottom-8 left-4 right-4 bg-black bg-opacity-50 p-4 rounded-lg">
+        <div className="absolute text-center bottom-8 left-4 right-4 bg-black bg-opacity-50 p-4 rounded-lg">
           <p className="text-white">{currentStory.content}</p>
         </div>
       </div>

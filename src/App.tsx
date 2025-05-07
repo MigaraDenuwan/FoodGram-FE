@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
 import LoadingSpinner from './components/ui/LoadingSpinner';
+import StoryCreate from './components/stories/StoryCreate';
+import StoryEdit from './components/stories/StoryEdit';
 
 // Lazy-loaded components
 const Home = lazy(() => import('./pages/Home'));
@@ -63,6 +65,10 @@ function App() {
             path="/recipe/create" 
             element={user ? <CreateRecipe /> : <Navigate to="/login" />} 
           />
+          <Route path="/story/create" element={<StoryCreate />} />
+
+          <Route path="/story/:id/edit" element={<StoryEdit />} />
+
           <Route 
             path="/recipe/:id" 
             element={user ? <RecipeDetail /> : <Navigate to="/login" />} 
