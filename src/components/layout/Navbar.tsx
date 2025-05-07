@@ -2,10 +2,33 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Home, PlusSquare, User, Search, LogOut, Utensils } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getProfile } from '../../services/profileService';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleProfileClick = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      await getProfile(user.id);
+      // If profile exists, navigate to profile details
+      navigate(`/profile/${user.id}`);
+    } catch (error: any) {
+      // If profile not found (e.g., 404), navigate to create profile
+      if (error.response?.status === 404) {
+        navigate('/profile/edit');
+      } else {
+        console.error('Error fetching profile:', error);
+        // Optionally handle other errors (e.g., show a toast notification)
+        navigate('/profile/edit'); // Fallback to edit page
+      }
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -51,12 +74,12 @@ const Navbar: React.FC = () => {
               <PlusSquare className="h-6 w-6" />
             </Link>
             {user && (
-              <Link
-                to={`/profile/${user.id}`}
+              <button
+                onClick={handleProfileClick}
                 className="text-gray-700 hover:text-accent-500 p-2 rounded-md"
               >
                 <User className="h-6 w-6" />
-              </Link>
+              </button>
             )}
             <button
               onClick={handleLogout}

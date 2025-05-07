@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 import { loginUser, registerUser, logoutUser } from '../services/authService';
 
 interface User {
+  token(id: string, token: any): unknown;
   id: string;
   username: string;
   email: string;
@@ -48,7 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const mockUserData = {
         id: 'user-' + Date.now(),
         username: email.split('@')[0],
-        email
+        email,
+        token: (id: string, token: any) => {
+          console.log(`Token method called with id: ${id} and token: ${token}`);
+          return null;
+        }
       };
       
       setUser(mockUserData);

@@ -12,8 +12,10 @@ import Input from '../components/ui/Input';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 const profileSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
   bio: z.string().max(160, 'Bio must be at most 160 characters').optional(),
+  email: z.string().email('Invalid email address'),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -39,8 +41,10 @@ const EditProfile: React.FC = () => {
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
+      username: '',
       name: '',
       bio: '',
+      email: '',
     },
   });
 
@@ -57,12 +61,26 @@ const EditProfile: React.FC = () => {
         }
         const profileData = await getProfile(user.id);
         setProfile(profileData);
-        setValue('name', profileData.name);
-        setValue('bio', profileData.bio || '');
-        setAvatarPreview(profileData.avatarUrl);
+        if (profileData) {
+          setValue('username', profileData.userId);
+        }
+        if (profileData) {
+          setValue('name', profileData.name);
+        }
+        setValue('bio', profileData?.bio || '');
+        if (profileData) {
+          setValue('email', profileData.email);
+        }
+        if (profileData?.avatarUrl) {
+          setAvatarPreview(profileData.avatarUrl);
+        }
       } catch (error) {
         console.error('Error fetching profile:', error);
-        setProfile(null); // No profile exists
+        setProfile(null);
+        if (user) {
+          setValue('username', user.id);
+        }
+        setValue('email', user?.email || '');
       } finally {
         setLoading(false);
       }
@@ -113,6 +131,7 @@ const EditProfile: React.FC = () => {
         name: data.name,
         bio: data.bio || '',
         avatarUrl,
+        email: data.email,
       };
 
       if (profile) {
@@ -138,7 +157,7 @@ const EditProfile: React.FC = () => {
 
     try {
       await deleteProfile(user.id);
-      navigate('/login'); // Redirect to login after deletion
+      navigate('/login');
     } catch (error) {
       console.error('Error deleting profile:', error);
       setErrorMessage('Failed to delete profile. Please try again.');
@@ -158,7 +177,6 @@ const EditProfile: React.FC = () => {
 
   return (
     <div className="pt-4 pb-20 md:pb-8">
-      {/* Header with back button */}
       <div className="flex items-center mb-6">
         <Link to={`/profile/${user?.id}`} className="flex items-center text-gray-700">
           <ArrowLeft className="h-5 w-5 mr-2" />
@@ -167,7 +185,6 @@ const EditProfile: React.FC = () => {
         <h1 className="text-xl font-semibold text-center flex-1">Edit Profile</h1>
       </div>
 
-      {/* Error message */}
       {errorMessage && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
           {errorMessage}
@@ -175,12 +192,10 @@ const EditProfile: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-lg shadow p-6">
-        {/* Avatar upload */}
         <div className="mb-6 flex flex-col items-center">
           <label className="block text-sm font-medium text-gray-700 mb-4 text-center">
             Profile Picture
           </label>
-
           <div className="relative mb-4">
             <div
               className={`w-32 h-32 rounded-full overflow-hidden ${
@@ -195,7 +210,6 @@ const EditProfile: React.FC = () => {
                 </div>
               )}
             </div>
-
             <button
               type="button"
               onClick={() => document.getElementById('avatar-upload')?.click()}
@@ -204,7 +218,6 @@ const EditProfile: React.FC = () => {
               <Upload className="h-4 w-4" />
             </button>
           </div>
-
           <input
             id="avatar-upload"
             type="file"
@@ -212,19 +225,29 @@ const EditProfile: React.FC = () => {
             onChange={handleAvatarChange}
             className="hidden"
           />
-
           {avatarError && <p className="text-sm text-red-600 mt-1">{avatarError}</p>}
         </div>
 
-        {/* Name and Bio */}
         <div className="space-y-4 mb-6">
+          <Input
+            label="Username"
+            placeholder="Your username"
+            error={errors.username?.message}
+            {...register('username')}
+            disabled
+          />
           <Input
             label="Name"
             placeholder="Your name"
             error={errors.name?.message}
             {...register('name')}
           />
-
+          <Input
+            label="Email"
+            placeholder="Your email"
+            error={errors.email?.message}
+            {...register('email')}
+          />
           <div className="w-full">
             <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
             <textarea
@@ -240,14 +263,12 @@ const EditProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Submit button */}
         <div className="mt-8">
           <Button type="submit" fullWidth isLoading={isSubmitting}>
             Save Profile
           </Button>
         </div>
 
-        {/* Delete button */}
         {profile && (
           <div className="mt-4">
             <Button
@@ -263,7 +284,6 @@ const EditProfile: React.FC = () => {
         )}
       </form>
 
-      {/* Delete confirmation dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Grid, List, Settings, Plus } from 'lucide-react';
 import { getProfile } from '../services/profileService';
+import type { Profile } from '../services/profileService';
 import { getPosts } from '../services/postService';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -11,18 +12,7 @@ const Profile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
 
-  // Define the ProfileType interface
-  interface ProfileType {
-    id: string;
-    name: string;
-    bio: string;
-    avatarUrl?: string;
-    recipeCount: number;
-    followers: number;
-    following: number;
-  }
-  
-    const [profile, setProfile] = useState<ProfileType | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [userPosts, setUserPosts] = useState<any[]>([]); // Replace with actual Post interface
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -36,7 +26,7 @@ const Profile: React.FC = () => {
       try {
         const [profileData, postsData] = await Promise.all([
           getProfile(id),
-          getPosts(),
+          getPosts(user?.token),
         ]);
 
         setProfile(profileData);
@@ -92,7 +82,8 @@ const Profile: React.FC = () => {
           {/* Profile info */}
           <div className="mt-4 md:mt-0 md:ml-6 flex-grow text-center md:text-left">
             <h1 className="text-2xl font-semibold">{profile.name}</h1>
-            <p className="text-gray-600 mb-4">{profile.bio}</p>
+            <p className="text-gray-600 mb-2">{profile.bio}</p>
+            <p className="text-gray-600 mb-4">{profile.email}</p>
 
             <div className="flex justify-center md:justify-start space-x-6">
               <div className="text-center">

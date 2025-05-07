@@ -17,7 +17,7 @@ const Home: React.FC = () => {
         // Try to fetch real data, fall back to mock data
         try {
           const [postsData, storiesData] = await Promise.all([
-            getPosts(),
+            getPosts('your-token-here'),
             getStories()
           ]);
           

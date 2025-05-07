@@ -32,46 +32,45 @@ const axiosInstance = axios.create({
 export async function loginUser(data: LoginRequest): Promise<UserResponse> {
   try {
     const response = await axiosInstance.post('/login', data);
-    if (response.data.message?.includes('successful')) {
-      return {
-        id: 'user-' + Date.now(),
-        username: response.data.username,
-        email: response.data.email
-      };
+    if (typeof response.data === 'string') {
+      // Handle string response from backend
+      if (response.data.includes('successful')) {
+        // Create user object from login data since backend doesn't return it
+        return {
+          id: 'user-' + Date.now(),
+          username: data.email.split('@')[0],
+          email: data.email
+        };
+      }
+      throw new Error(response.data);
     }
-    throw new Error(response.data.error || 'Login failed');
+    return response.data;
   } catch (error: any) {
-    console.error('Full login error:', error);
-    if (error.response?.status === 401) {
-      throw new Error('Invalid credentials. Please check your email and password.');
-    }
     if (error.response?.status === 403) {
-      throw new Error('Access denied. Please check your credentials or server configuration.');
+      throw new Error('Access denied. Please check your credentials.');
     }
-    throw new Error(error.response?.data?.error || error.message || 'Login failed. Please try again.');
+    throw new Error(error.response?.data || error.message || 'Login failed. Please try again.');
   }
 }
 
 export async function registerUser(data: RegisterRequest): Promise<string> {
   try {
     const response = await axiosInstance.post('/register', data);
-    return response.data.message || 'Registration successful';
+    return response.data;
   } catch (error: any) {
-    console.error('Full register error:', error);
     if (error.response?.status === 403) {
       throw new Error('Registration failed. Email might already be in use.');
     }
-    throw new Error(error.response?.data?.error || error.message || 'Registration failed. Please try again.');
+    throw new Error(error.response?.data || error.message || 'Registration failed. Please try again.');
   }
 }
 
 export async function logoutUser(): Promise<string> {
   try {
     const response = await axiosInstance.post('/logout', {});
-    return response.data.message || 'Logged out successfully';
+    return response.data;
   } catch (error: any) {
-    console.error('Full logout error:', error);
-    throw new Error(error.response?.data?.error || error.message || 'Logout failed. Please try again.');
+    throw new Error(error.response?.data || error.message || 'Logout failed. Please try again.');
   }
 }
 
@@ -84,7 +83,6 @@ export async function getImagekitAuth(): Promise<{
     const response = await axiosInstance.get('/imagekit');
     return response.data;
   } catch (error: any) {
-    console.error('Full imagekit auth error:', error);
-    throw new Error(error.response?.data?.error || error.message || 'Failed to get ImageKit authentication.');
+    throw new Error(error.response?.data || error.message || 'Failed to get ImageKit authentication.');
   }
 }

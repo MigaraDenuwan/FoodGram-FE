@@ -128,7 +128,8 @@ export const mockProfiles: Profile[] = [
     avatarUrl: 'https://images.pexels.com/photos/3992656/pexels-photo-3992656.png',
     followers: 5243,
     following: 365,
-    recipeCount: 87
+    recipeCount: 87,
+    email: ''
   },
   {
     id: 'profile2',
@@ -138,7 +139,8 @@ export const mockProfiles: Profile[] = [
     avatarUrl: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg',
     followers: 3821,
     following: 412,
-    recipeCount: 54
+    recipeCount: 54,
+    email: ''
   },
   {
     id: 'profile3',
@@ -148,7 +150,8 @@ export const mockProfiles: Profile[] = [
     avatarUrl: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg',
     followers: 7512,
     following: 230,
-    recipeCount: 126
+    recipeCount: 126,
+    email: ''
   }
 ];
 
