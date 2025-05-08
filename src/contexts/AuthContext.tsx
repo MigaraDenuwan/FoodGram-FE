@@ -2,10 +2,10 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 import { loginUser, registerUser, logoutUser } from '../services/authService';
 
 interface User {
-  token(id: string, token: any): unknown;
   id: string;
   username: string;
   email: string;
+  token: string; // Change to string
 }
 
 interface AuthContextType {
@@ -44,20 +44,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       const response = await loginUser({ email, password });
       
-      // This is a mock since we don't have the actual response structure
-      // In a real app, the backend would return the user object
-      const mockUserData = {
-        id: 'user-' + Date.now(),
-        username: email.split('@')[0],
-        email,
-        token: (id: string, token: any) => {
-          console.log(`Token method called with id: ${id} and token: ${token}`);
-          return null;
-        }
+      // TODO: Replace with actual token from backend
+      const mockToken = 'mock-jwt-token-' + Date.now(); // Temporary mock token
+      const userData = {
+        id: response.id || 'user-' + Date.now(),
+        username: response.username || email.split('@')[0],
+        email: response.email || email,
+        token: mockToken,
       };
       
-      setUser(mockUserData);
-      localStorage.setItem('foodgram_user', JSON.stringify(mockUserData));
+      setUser(userData);
+      localStorage.setItem('foodgram_user', JSON.stringify(userData));
     } catch (err) {
       setError('Invalid credentials. Please try again.');
       console.error('Login error:', err);
@@ -108,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         checkAuth,
-        clearError
+        clearError,
       }}
     >
       {children}

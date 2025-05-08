@@ -73,8 +73,8 @@ const EditProfile: React.FC = () => {
           setValue('name', profileData.name);
           setValue('bio', profileData.bio || '');
           setValue('email', profileData.email);
-          if (profileData.avatarUrl) {
-            setAvatarPreview(profileData.avatarUrl);
+          if (profileData.profilePictureUrl) {
+            setAvatarPreview(profileData.profilePictureUrl);
           }
         } else {
           setValue('email', user.email);
@@ -124,16 +124,16 @@ const EditProfile: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      let avatarUrl = profile?.avatarUrl || '';
+      let profilePictureUrl = profile?.profilePictureUrl || '';
       if (avatarFile) {
         const uploadResult = await uploadImage(avatarFile);
-        avatarUrl = uploadResult.url;
+        profilePictureUrl = uploadResult.url;
       }
 
       const profileData = {
         name: data.name,
         bio: data.bio || '',
-        avatarUrl,
+        profilePictureUrl,
         email: data.email,
         followers: profile?.followers || 0,
         following: profile?.following || 0,

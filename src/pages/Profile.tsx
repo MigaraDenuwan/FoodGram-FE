@@ -38,29 +38,29 @@ const Profile: React.FC = () => {
   const isCurrentUser = user?.id === id && !!id;
 
   useEffect(() => {
-    console.log('Profile.tsx: user=', user, 'id=', id, 'isCurrentUser=', isCurrentUser);
     async function fetchData() {
-      if (!id || !user?.token) {
+      if (!id || !user || !user.token) {
+        console.log('Fetch aborted: Missing id, user, or token', { id, user });
         setError('Invalid user ID or missing authentication');
         setLoading(false);
         return;
       }
 
       try {
+        console.log('Fetching profile for userId:', id, 'with token:', user.token);
         const [profileData, postsData] = await Promise.all([
           getProfile(id, user.token),
           getPosts(user.token),
         ]);
 
-        if (!profileData) {
-          console.log('No profile found for user ID:', id);
-        }
+        console.log('Profile data:', profileData);
+        console.log('Posts data:', postsData);
 
         setProfile(profileData);
         setUserPosts(postsData.filter((p: Post) => p.userId === id));
       } catch (error: any) {
         console.error('Error fetching data:', error.message);
-        setError(error.message || 'Failed to load profile. Please check your authentication.');
+        setError(error.message || 'Failed to load profile data.');
         setProfile(null);
         setUserPosts([]);
       } finally {
@@ -79,28 +79,29 @@ const Profile: React.FC = () => {
     );
   }
 
-  if (error || !profile) {
+  if (!user) {
+    console.log('No user authenticated');
     return (
       <div className="flex justify-center py-12">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'Profile not found'}</p>
-          {isCurrentUser && (
-            <Link
-              to="/profile/edit"
-              onClick={() => console.log('Create Your Profile button clicked')}
-              className="inline-block"
-            >
-              <Button>Create Your Profile</Button>
-            </Link>
-          )}
+          <p className="text-red-600 mb-4">Please log in to view this profile.</p>
+          <Link to="/login" className="inline-block">
+            <Button>Log In</Button>
+          </Link>
         </div>
       </div>
     );
   }
 
+  // Fallback data
+  const displayName = profile?.name || user.username || 'User';
+  const displayEmail = profile?.email || user.email || 'No email provided';
+  const displayBio = profile?.bio || 'No bio provided';
   const profilePictureUrl =
-    profile.avatarUrl ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&size=200&background=random`;
+    profile?.profilePictureUrl ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=200&background=random`;
+
+  console.log('Rendering profile with:', { displayName, displayEmail, profilePictureUrl });
 
   return (
     <div className="pt-4 pb-20 md:pb-8 animate-fade-in">
@@ -109,42 +110,43 @@ const Profile: React.FC = () => {
           <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
             <img
               src={profilePictureUrl}
-              alt={profile.name}
+              alt={displayName}
               className="w-full h-full object-cover"
               onError={(e) => {
+                console.log('Image load error, using fallback');
                 e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  profile.name
+                  displayName
                 )}&size=200&background=random`;
               }}
             />
           </div>
 
           <div className="mt-4 md:mt-0 md:ml-6 flex-grow text-center md:text-left">
-            <h1 className="text-2xl font-semibold">{profile.name}</h1>
-            <p className="text-gray-600 mb-2">{profile.bio || 'No bio provided'}</p>
-            <p className="text-gray-600 mb-4">{profile.email}</p>
+            <h1 className="text-2xl font-semibold">{displayName}</h1>
+            <p className="text-gray-600 mb-2">{displayBio}</p>
+            <p className="text-gray-600 mb-4">{displayEmail}</p>
 
-            <div className="flex justify-center md:justify-start space-x-6">
+            {/* <div className="flex justify-center md:justify-start space-x-6">
               <div className="text-center">
-                <span className="block font-semibold">{profile.recipeCount}</span>
+                <span className="block font-semibold">{profile?.recipeCount || 0}</span>
                 <span className="text-sm text-gray-500">Recipes</span>
               </div>
               <div className="text-center">
-                <span className="block font-semibold">{profile.followers}</span>
+                <span className="block font-semibold">{profile?.followers || 0}</span>
                 <span className="text-sm text-gray-500">Followers</span>
               </div>
               <div className="text-center">
-                <span className="block font-semibold">{profile.following}</span>
+                <span className="block font-semibold">{profile?.following || 0}</span>
                 <span className="text-sm text-gray-500">Following</span>
               </div>
-            </div>
+            </div> */}
           </div>
 
           <div className="mt-4 md:mt-0 md:ml-4 flex-shrink-0">
             {isCurrentUser ? (
               <Link to="/profile/edit">
                 <Button variant="outline" icon={<Settings className="h-4 w-4" />}>
-                  Edit Profile
+                  {profile ? 'Edit Profile' : 'Create Profile'}
                 </Button>
               </Link>
             ) : (
@@ -152,6 +154,21 @@ const Profile: React.FC = () => {
             )}
           </div>
         </div>
+
+        {error && (
+          <div className="mt-4 text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+          </div>
+        )}
+
+        {isCurrentUser && !profile && (
+          <div className="mt-4 text-center">
+            <p className="text-gray-600 mb-4">You haven't created a profile yet.</p>
+            <Link to="/profile/edit" className="inline-block">
+              <Button>Create Your Profile</Button>
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 mb-6">

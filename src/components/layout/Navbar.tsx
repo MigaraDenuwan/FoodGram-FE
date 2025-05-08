@@ -15,7 +15,7 @@ const Navbar: React.FC = () => {
     }
 
     try {
-      await getProfile(user.id);
+      await getProfile(user.id, user.token);
       // If profile exists, navigate to profile details
       navigate(`/profile/${user.id}`);
     } catch (error: any) {
