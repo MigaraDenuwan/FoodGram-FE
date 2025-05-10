@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import StoryCreate from './components/stories/StoryCreate';
 import StoryEdit from './components/stories/StoryEdit';
+import LearningPlan from './pages/LearningPlans';
 
 // Lazy-loaded components
 const Home = lazy(() => import('./pages/Home'));
@@ -54,6 +55,8 @@ function App() {
           <Route path="/story/:id/edit" element={<StoryEdit />} />
           <Route path="/recipe/:id" element={user ? <RecipeDetail /> : <Navigate to="/login" />} />
           <Route path="/story/:id" element={user ? <StoryView /> : <Navigate to="/login" />} />
+          <Route path="/profile/:id" element={<Profile />} />
+          <Route path="/learning-plan" element={<LearningPlan />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
       </Routes>

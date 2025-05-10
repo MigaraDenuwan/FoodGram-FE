@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Grid, List, Settings, Plus } from 'lucide-react';
+import { Grid, List, Settings, Plus, BookOpen } from 'lucide-react';
 import { getProfile } from '../services/profileService';
 import type { Profile } from '../services/profileService';
 import { getPosts } from '../services/postService';
@@ -125,30 +125,22 @@ const Profile: React.FC = () => {
             <h1 className="text-2xl font-semibold">{displayName}</h1>
             <p className="text-gray-600 mb-2">{displayBio}</p>
             <p className="text-gray-600 mb-4">{displayEmail}</p>
-
-            {/* <div className="flex justify-center md:justify-start space-x-6">
-              <div className="text-center">
-                <span className="block font-semibold">{profile?.recipeCount || 0}</span>
-                <span className="text-sm text-gray-500">Recipes</span>
-              </div>
-              <div className="text-center">
-                <span className="block font-semibold">{profile?.followers || 0}</span>
-                <span className="text-sm text-gray-500">Followers</span>
-              </div>
-              <div className="text-center">
-                <span className="block font-semibold">{profile?.following || 0}</span>
-                <span className="text-sm text-gray-500">Following</span>
-              </div>
-            </div> */}
           </div>
 
-          <div className="mt-4 md:mt-0 md:ml-4 flex-shrink-0">
+          <div className="mt-4 md:mt-0 md:ml-4 flex-shrink-0 flex flex-col space-y-2">
             {isCurrentUser ? (
-              <Link to="/profile/edit">
-                <Button variant="outline" icon={<Settings className="h-4 w-4" />}>
-                  {profile ? 'Edit Profile' : 'Create Profile'}
-                </Button>
-              </Link>
+              <>
+                <Link to="/profile/edit">
+                  <Button variant="outline" icon={<Settings className="h-4 w-4" />}>
+                    {profile ? 'Edit Profile' : 'Create Profile'}
+                  </Button>
+                </Link>
+                <Link to="/learning-plan">
+                  <Button variant="outline" icon={<BookOpen className="h-4 w-4" />}>
+                    Manage Learning Plans
+                  </Button>
+                </Link>
+              </>
             ) : (
               <Button>Follow</Button>
             )}

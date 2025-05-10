@@ -32,19 +32,25 @@ const axiosInstance = axios.create({
 export async function loginUser(data: LoginRequest): Promise<UserResponse> {
   try {
     const response = await axiosInstance.post('/login', data);
+    let user: UserResponse;
+
     if (typeof response.data === 'string') {
-      // Handle string response from backend
       if (response.data.includes('successful')) {
-        // Create user object from login data since backend doesn't return it
-        return {
+        user = {
           id: 'user-' + Date.now(),
           username: data.email.split('@')[0],
           email: data.email
         };
+      } else {
+        throw new Error(response.data);
       }
-      throw new Error(response.data);
+    } else {
+      user = response.data;
     }
-    return response.data;
+
+    localStorage.setItem('user', JSON.stringify(user));
+
+    return user;
   } catch (error: any) {
     if (error.response?.status === 403) {
       throw new Error('Access denied. Please check your credentials.');
@@ -52,6 +58,7 @@ export async function loginUser(data: LoginRequest): Promise<UserResponse> {
     throw new Error(error.response?.data || error.message || 'Login failed. Please try again.');
   }
 }
+
 
 export async function registerUser(data: RegisterRequest): Promise<string> {
   try {
