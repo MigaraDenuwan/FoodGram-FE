@@ -89,21 +89,21 @@ const LearningPlan: React.FC = () => {
     }
   };
 
-  const deletePlan = async (id: string) => {
-    if (!user) return;
+const deletePlan = async (id: string) => {
+  if (!user) return;
 
-    try {
-      const storedUser = localStorage.getItem('user');
-      console.log(storedUser);
-      await axios.delete(`http://localhost:8080/api/learning-plans/${storedUser}`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setPlans(plans.filter((plan) => plan.id !== id));
-      setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete learning plan.');
-    }
-  };
+  try {
+    await axios.delete(`http://localhost:8080/api/learning-plans/${id}`, {
+      headers: { Authorization: `Bearer ${user.token}` },
+      data: { userId: user.id } // optional, depending on backend needs
+    });
+    setPlans(plans.filter((plan) => plan.id !== id));
+    setError(null);
+  } catch (err: any) {
+    setError(err.response?.data?.message || 'Failed to delete learning plan.');
+  }
+};
+
 
   if (loading) {
     return (

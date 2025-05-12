@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Home, PlusSquare, User, Search, LogOut, Utensils } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,6 +7,7 @@ import { getProfile } from '../../services/profileService';
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleProfileClick = async () => {
     if (!user) {
@@ -16,16 +17,13 @@ const Navbar: React.FC = () => {
 
     try {
       await getProfile(user.id, user.token);
-      // If profile exists, navigate to profile details
       navigate(`/profile/${user.id}`);
     } catch (error: any) {
-      // If profile not found (e.g., 404), navigate to create profile
       if (error.response?.status === 404) {
         navigate('/profile/edit');
       } else {
         console.error('Error fetching profile:', error);
-        // Optionally handle other errors (e.g., show a toast notification)
-        navigate('/profile/edit'); // Fallback to edit page
+        navigate('/profile/edit');
       }
     }
   };
@@ -33,6 +31,15 @@ const Navbar: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Here we make sure to only submit a search if the query is not empty
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
   };
 
   return (
@@ -51,16 +58,18 @@ const Navbar: React.FC = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
-            <div className="relative w-64">
+            <form onSubmit={handleSearchSubmit} className="relative w-64">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search recipes..."
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-500"
               />
-            </div>
+            </form>
             <Link
               to="/"
               className="text-gray-700 hover:text-accent-500 p-2 rounded-md"

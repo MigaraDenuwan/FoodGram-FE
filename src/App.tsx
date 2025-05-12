@@ -6,6 +6,7 @@ import LoadingSpinner from './components/ui/LoadingSpinner';
 import StoryCreate from './components/stories/StoryCreate';
 import StoryEdit from './components/stories/StoryEdit';
 import LearningPlan from './pages/LearningPlans';
+import SearchResults from './pages/SearchResults';
 
 // Lazy-loaded components
 const Home = lazy(() => import('./pages/Home'));
@@ -51,13 +52,15 @@ function App() {
           <Route path="/profile/:id" element={user ? <Profile /> : <Navigate to="/login" />} />
           <Route path="/profile/edit" element={user ? <EditProfile /> : <Navigate to="/login" />} />
           <Route path="/recipe/create" element={user ? <CreateRecipe /> : <Navigate to="/login" />} />
-          <Route path="/recipe/edit/:id" element={user ? <EditRecipe /> : <Navigate to="/login" />} />          <Route path="/story/create" element={<StoryCreate />} />
+          <Route path="/recipe/edit/:id" element={user ? <EditRecipe /> : <Navigate to="/login" />} />          
+          <Route path="/story/create" element={<StoryCreate />} />
           <Route path="/story/:id/edit" element={<StoryEdit />} />
           <Route path="/recipe/:id" element={user ? <RecipeDetail /> : <Navigate to="/login" />} />
           <Route path="/story/:id" element={user ? <StoryView /> : <Navigate to="/login" />} />
           <Route path="/profile/:id" element={<Profile />} />
           <Route path="/learning-plan" element={<LearningPlan />} />
           <Route path="*" element={<Navigate to="/" />} />
+          <Route path="/search" element={<SearchResults />} />
         </Route>
       </Routes>
     </Suspense>
